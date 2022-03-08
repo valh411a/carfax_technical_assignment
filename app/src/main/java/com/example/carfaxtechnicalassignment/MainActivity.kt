@@ -13,10 +13,11 @@ import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
 
 class MainActivity : AppCompatActivity() {
+    private val database = Firebase.database
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val database = Firebase.database
         Firebase.database.setPersistenceEnabled(true)
         val myRef = database.getReference("message")
         myRef.addValueEventListener(object : ValueEventListener {
