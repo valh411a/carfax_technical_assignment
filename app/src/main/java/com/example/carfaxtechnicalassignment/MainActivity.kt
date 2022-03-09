@@ -6,9 +6,14 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -17,10 +22,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.database.FirebaseDatabase
 import java.io.Serializable
+import java.text.NumberFormat
+import java.util.*
 
 class FireBaseStarter : android.app.Application() {
     override fun onCreate() {
@@ -67,7 +75,12 @@ class MainActivity : AppCompatActivity() {
             val make = hashMap["make"].toString()
             val model = hashMap["model"].toString()
             val trim = hashMap["trim"].toString()
-            val price = hashMap["price"].toString()
+            //special formatting instance to convert the price into USD
+            val format = NumberFormat.getCurrencyInstance(Locale.getDefault())
+            format.maximumFractionDigits = 0
+            format.currency = Currency.getInstance("USD")
+            val price = format.format(hashMap["currentPrice"].toString().toDouble())
+
             val mileage = hashMap["mileage"].toString()
             val location = hashMap["location"].toString()
             parsedInventory.add(CarInfoModel(year, make, model, trim, price, mileage, location))
@@ -93,7 +106,16 @@ class MainActivity : AppCompatActivity() {
     fun Screen(inventoryList: ArrayList<*>, viewModel: ScreenViewModel = viewModel()) {
         if (inventoryList.size > 1) {
             when (val uiState = viewModel.uiState.value) {
-                ScreenState.Success -> ListingCard(text = inventoryList.toString())
+                ScreenState.Success -> {
+                    LazyColumn {
+                        items(inventoryList) { cardInfoList ->
+                            ListingCard(cardInfoList = cardInfoList)
+                        }
+//                        for (i in inventoryList)
+//                            ListingCard(i)
+                    }
+
+                }
                 ScreenState.Error -> ErrorOccured()
             }
         } else {
@@ -116,15 +138,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    private fun ListingCard(text: String) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.h5,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = dimensionResource(R.dimen.margin_small))
-                .wrapContentWidth(Alignment.CenterHorizontally)
-        )
+    private fun ListingCard(cardInfoList: Any) {
+        val cardInfo = arrayListOf<CarInfoModel>(cardInfoList as CarInfoModel).elementAt(0)
+        Card(modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { }, elevation = 2.dp
+        ) {
+
+            Column {
+                Text(
+                    cardInfo.year.toString() + " " +
+                            cardInfo.make + " " +
+                            cardInfo.model
+                )
+                Text(
+                    cardInfo.price + "\t|\t" +
+                            cardInfo.mileage
+                )
+            }
+            //TODO: Add support for product images
+
+        }
     }
 
     @Composable
