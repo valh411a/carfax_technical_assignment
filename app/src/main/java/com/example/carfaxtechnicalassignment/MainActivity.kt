@@ -19,92 +19,126 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
-import com.google.firebase.database.ktx.database
-import com.google.firebase.database.ktx.getValue
-import com.google.firebase.ktx.Firebase
-
-private val database = Firebase.database
+import com.google.firebase.database.FirebaseDatabase
+import java.io.Serializable
 
 class FireBaseStarter : android.app.Application() {
-
     override fun onCreate() {
         super.onCreate()
-        database.setPersistenceEnabled(true)
+        FirebaseDatabase.getInstance().setPersistenceEnabled(true)
     }
 
 }
+
 
 class MainActivity : AppCompatActivity() {
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
-
-        setContent {
-            Screen()
+        /*
+        TODO: following block is for parsing the data from the database,
+             reposition with architecture viability in mind
+        */
+        FirebaseDatabase.getInstance().reference.get().addOnSuccessListener {
+            Log.i(TAG, "Obtained Listing")
+            val inventoryList = it.child("listings").value as ArrayList<*>
+            val parsedInventoryList = getCarList(inventoryList)
+            Log.i(TAG, "list length: ${parsedInventoryList.size}")
+            setContent {
+                Screen(parsedInventoryList)
+            }
+        }.addOnFailureListener {
+            Log.e(TAG, "Firebase was unable to successfully connect the listener")
         }
-        val myRef = database.getReference("message")
-        myRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                // This method is called once with the initial value and again
-                // whenever data at this location is updated.
-                val value = snapshot.getValue<String>()
-                Log.d(TAG, "Value is: $value")
+
+
+    }
+
+    private fun getCarList(CarDataList: ArrayList<*>): ArrayList<CarInfoModel> {
+        val size = CarDataList.size
+        var index = 0
+        val parsedInventory = ArrayList<CarInfoModel>()
+
+        while (index < size) {
+            val hashMap: HashMap<*, *> = CarDataList[index] as HashMap<*, *>
+            val year = hashMap["year"].toString()
+            val make = hashMap["make"].toString()
+            val model = hashMap["model"].toString()
+            val trim = hashMap["trim"].toString()
+            val price = hashMap["price"].toString()
+            val mileage = hashMap["mileage"].toString()
+            val location = hashMap["location"].toString()
+            parsedInventory.add(CarInfoModel(year, make, model, trim, price, mileage, location))
+            index++
+        }
+        return parsedInventory
+    }
+
+    data class CarInfoModel(
+        val year: String? = null,
+        val make: String,
+        val model: String,
+        val trim: String,
+        val price: String,
+        val mileage: String,
+        val location: String
+    ) : Serializable {
+        //TODO: Add variable to handle image links
+
+    }
+
+    @Composable
+    fun Screen(inventoryList: ArrayList<*>, viewModel: ScreenViewModel = viewModel()) {
+        if (inventoryList.size > 1) {
+            when (val uiState = viewModel.uiState.value) {
+                ScreenState.Success -> ListingCard(text = inventoryList.toString())
+                ScreenState.Error -> ErrorOccured()
             }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.w(TAG, "Failed to read value.", error.toException())
-            }
-        })
+        } else {
+            Log.e(TAG, "parsedInventoryList was not updated correctly")
+        }
 
 
+    }
+
+    class ScreenViewModel : ViewModel() {
+        private val _uiState = mutableStateOf<ScreenState>(ScreenState.Success)
+        val uiState: State<ScreenState>
+            get() = _uiState
+    }
+
+    sealed class ScreenState {
+        object Success : ScreenState()
+        object Error : ScreenState()
+
+    }
+
+    @Composable
+    private fun ListingCard(text: String) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.h5,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = dimensionResource(R.dimen.margin_small))
+                .wrapContentWidth(Alignment.CenterHorizontally)
+        )
+    }
+
+    @Composable
+    private fun ErrorOccured() {
+        Text(
+            text = "An error has occured when attempting to load the list.",
+            style = MaterialTheme.typography.h5,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = dimensionResource(R.dimen.margin_small))
+                .wrapContentWidth(Alignment.CenterHorizontally)
+        )
     }
 }
 
 
-@Composable
-fun Screen(viewModel: ScreenViewModel = viewModel()) {
-    when (val uiState = viewModel.uiState.value) {
-        ScreenState.Success -> Greeting(text = uiState.toString())
-        ScreenState.Error -> ErrorOccured()
-    }
 
-
-}
-
-class ScreenViewModel : ViewModel() {
-    private val _uiState = mutableStateOf<ScreenState>(ScreenState.Success)
-    val uiState: State<ScreenState>
-        get() = _uiState
-}
-
-sealed class ScreenState {
-    object Success : ScreenState()
-    object Error : ScreenState()
-
-}
-
-@Composable
-private fun Greeting(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.h5,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = dimensionResource(R.dimen.margin_small))
-            .wrapContentWidth(Alignment.CenterHorizontally)
-    )
-}
-
-@Composable
-private fun ErrorOccured() {
-    Text(
-        text = "An error has occured when attempting to load the list.",
-        style = MaterialTheme.typography.h5,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = dimensionResource(R.dimen.margin_small))
-            .wrapContentWidth(Alignment.CenterHorizontally)
-    )
-}
