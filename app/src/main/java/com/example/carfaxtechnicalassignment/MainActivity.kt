@@ -286,14 +286,14 @@ class MainActivity : AppCompatActivity() {
                         Text(
                             cardInfo.year + " " +
                                     cardInfo.make + " " +
-                                    cardInfo.model
+                                    cardInfo.model, modifier = Modifier.padding(start = 8.dp)
                         )
                         Text(
                             cardInfo.price + "\t|\t" +
-                                    cardInfo.mileage
+                                    cardInfo.mileage, modifier = Modifier.padding(start = 8.dp)
                         )
                         Text(
-                            cardInfo.location
+                            cardInfo.location, modifier = Modifier.padding(start = 8.dp)
                         )
                         Divider()
                         Button(
@@ -371,12 +371,12 @@ class MainActivity : AppCompatActivity() {
                 Text(
                     elementLocation.value.year + " " +
                             elementLocation.value.make + " " +
-                            elementLocation.value.model
+                            elementLocation.value.model, modifier = Modifier.padding(start = 16.dp)
                 )
                 Text(
                     elementLocation.value.price + "\t|\t" +
                             elementLocation.value.mileage,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp)
                 )
                 Divider(modifier = Modifier.padding(16.dp))
                 Text(
